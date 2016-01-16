@@ -92,3 +92,81 @@ qplot(x = carat, data = diamonds,
       geom = 'freqpoly') +
   scale_x_continuous(limits = c(0, 3), breaks = seq(0, 3, 0.3))
 
+## plot gapminder data
+### load data set about average ages of billionaires across the globe
+gb <- read.csv("Indicator_Average age.csv", header = TRUE)
+str(gb)
+
+
+### fixing up the columns a little
+gb[6:9] <- list(NULL)
+colnames(gb) <- c("country", "2004", "2005", "2006", "2007")
+str(gb)
+
+library(tidyr)
+gbtidy <- gather(gb, "year", "avg_age", 2:5)
+gbtidy2 <- transform(gbtidy, country = as.character(country))
+str(gbtidy)
+
+### remove countries with no billionaires
+gbtidy2[gbtidy2 == 0] <- NA
+head(gbtidy2)
+gbdata <- na.omit(gbtidy2)
+str(gbdata)
+head(gbdata)
+quantile(gbdata$avg_age)
+
+### some plots
+hist(gbdata$avg_age)
+
+library(ggplot2)
+qplot(x = avg_age, data = gbdata, binwidth = 1,
+      color = I('black'), fill = I('#EEAEEE')) +
+  facet_wrap(~year) # count of each average age per year
+ggsave('UD651_ProblemSet3_GbAgeYearsHistogram.png')
+
+plot(gbdata$avg_age~gbdata$year) # boxplot of ages per year
+ggsave('UD651_ProblemSet3_GbAgeYearsBox.png')
+
+
+## facebook friends' birthdays
+fb <- read.csv("Facebook_Birthdays.csv", header = FALSE, sep = ",",
+               col.names = c("birthday", "name"), colClasses = c("character", "character"))
+str(fb)
+fbdates <- as.Date(fb$birthday, format = "%m/%d/%Y")
+fbnames <- as.character(fb$name)
+fb2 <- data.frame(fbdates, fbnames)
+str(fb2)
+
+### split date variable into month & day, remove year
+library(tidyr)
+fbsplit <- separate(fb2, fbdates, c("year", "month", "day"))
+str(fbsplit)
+
+library(dplyr)
+fbdata <- select(fbsplit, month, day, fbnames)
+str(fbdata)
+
+### birthday day counts by month
+library(ggplot2)
+bdayplot <- qplot(x = day, data = fbdata, binwidth = 1,
+      color = I('black'), fill = I('#2E0854')) +
+  facet_wrap(~month)
+
+### how many people share my birthday?
+library(dplyr)
+count(filter(fbdata, month == 11 & day == 20))
+
+### how many birthdays are in each month?
+bdays_by_month <- tally(group_by(fbdata, month))
+bdays_by_month
+
+### which month contains the most birthdays?
+bdays_by_month[bdays_by_month$n == max(bdays_by_month$n),]
+
+### which day contains the most birthdays?
+bdays_by_day <- tally(group_by(fbdata, day))
+bdays_by_day[bdays_by_day$n == max(bdays_by_day$n),]
+
+### is there at least 1 birthday on each day of the year? --> no
+bdayplot
